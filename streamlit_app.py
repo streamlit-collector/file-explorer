@@ -2,109 +2,109 @@ import streamlit as st
 import os
 import shutil
 from PIL import Image
-import mimetypes
+import pandas as pd
+import base64
+
+def get_file_size(file_path):
+    return os.path.getsize(file_path)
 
 def get_file_type(file_path):
-    mime_type, _ = mimetypes.guess_type(file_path)
-    if mime_type:
-        return mime_type.split('/')[0]
-    return 'unknown'
+    _, extension = os.path.splitext(file_path)
+    return extension
 
-def rename_item(old_path, new_name):
-    new_path = os.path.join(os.path.dirname(old_path), new_name)
-    os.rename(old_path, new_path)
+def get_file_info(file_path):
+    return {
+        'Size': get_file_size(file_path),
+        'Type': get_file_type(file_path),
+        'Last Modified': os.path.getmtime(file_path)
+    }
 
-def delete_item(path):
-    if os.path.isfile(path):
-        os.remove(path)
-    elif os.path.isdir(path):
-        shutil.rmtree(path)
-
-def display_file_content(file_path):
-    file_type = get_file_type(file_path)
+def display_file(file_path):
+    file_type = get_file_type(file_path).lower()
     
-    if file_type == 'text':
+    if file_type in ['.txt', '.py', '.java', '.cpp']:
         with open(file_path, 'r') as file:
-            st.text_area("Nội dung file", file.read(), height=300)
-    elif file_type == 'image':
+            st.text(file.read())
+    elif file_type in ['.png', '.jpg', '.jpeg', '.gif']:
         st.image(Image.open(file_path))
-    elif file_type == 'video':
-        video_file = open(file_path, 'rb')
-        video_bytes = video_file.read()
-        st.video(video_bytes)
-    elif file_type == 'audio':
-        audio_file = open(file_path, 'rb')
-        audio_bytes = audio_file.read()
-        st.audio(audio_bytes, format='audio/mp3')
+    elif file_type in ['.mp3', '.wav']:
+        st.audio(file_path)
+    elif file_type in ['.mp4', '.avi', '.mov']:
+        st.video(file_path)
+    elif file_type == '.pdf':
+        with open(file_path, "rb") as f:
+            base64_pdf = base64.b64encode(f.read()).decode('utf-8')
+        pdf_display = f'<iframe src="data:application/pdf;base64,{base64_pdf}" width="700" height="1000" type="application/pdf"></iframe>'
+        st.markdown(pdf_display, unsafe_allow_html=True)
     else:
-        st.write("Không thể hiển thị nội dung của file này.")
-
-def handle_upload():
-    uploaded_file = st.session_state.uploaded_file
-    if uploaded_file is not None:
-        file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        st.session_state.upload_message = f"File {uploaded_file.name} đã được upload thành công!"
-        st.session_state.uploaded_file = None
+        st.write("Không thể hiển thị file này.")
 
 def main():
-    st.title("File Explorer")
+    st.title("Trình duyệt tệp Streamlit")
 
     if 'current_path' not in st.session_state:
-        st.session_state.current_path = os.path.expanduser("~")
-    
-    if 'upload_message' not in st.session_state:
-        st.session_state.upload_message = ""
+        st.session_state.current_path = os.getcwd()
 
-    if st.button("⬆️ Lên thư mục cha"):
-        st.session_state.current_path = os.path.dirname(st.session_state.current_path)
+    st.sidebar.title("Chức năng")
 
-    st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
+    # Mở thư mục
+    new_path = st.sidebar.text_input("Đường dẫn thư mục:", st.session_state.current_path)
+    if new_path != st.session_state.current_path:
+        if os.path.exists(new_path) and os.path.isdir(new_path):
+            st.session_state.current_path = new_path
+        else:
+            st.sidebar.error("Đường dẫn không hợp lệ!")
 
-    # File uploader
-    st.file_uploader("Chọn file để upload", type=None, key="uploaded_file", on_change=handle_upload)
+    # Tạo thư mục/tệp mới
+    new_item = st.sidebar.text_input("Tên thư mục/tệp mới:")
+    create_type = st.sidebar.radio("Loại:", ("Thư mục", "Tệp"))
+    if st.sidebar.button("Tạo"):
+        new_path = os.path.join(st.session_state.current_path, new_item)
+        if create_type == "Thư mục":
+            os.makedirs(new_path, exist_ok=True)
+        else:
+            open(new_path, 'a').close()
 
-    # Display upload message
-    if st.session_state.upload_message:
-        st.success(st.session_state.upload_message)
-        st.session_state.upload_message = ""
+    # Xóa thư mục/tệp
+    delete_item = st.sidebar.selectbox("Chọn mục để xóa:", os.listdir(st.session_state.current_path))
+    if st.sidebar.button("Xóa"):
+        delete_path = os.path.join(st.session_state.current_path, delete_item)
+        if os.path.isdir(delete_path):
+            shutil.rmtree(delete_path)
+        else:
+            os.remove(delete_path)
 
-    # Display files and directories
-    items = os.listdir(st.session_state.current_path)
-    for item in items:
+    # Di chuyển tệp/thư mục
+    move_item = st.sidebar.selectbox("Chọn mục để di chuyển:", os.listdir(st.session_state.current_path))
+    move_to = st.sidebar.text_input("Di chuyển đến:")
+    if st.sidebar.button("Di chuyển"):
+        source = os.path.join(st.session_state.current_path, move_item)
+        destination = os.path.join(move_to, move_item)
+        shutil.move(source, destination)
+
+    # Hiển thị nội dung thư mục
+    st.write(f"Nội dung của: {st.session_state.current_path}")
+    for item in os.listdir(st.session_state.current_path):
+        col1, col2, col3 = st.columns([3, 1, 1])
         item_path = os.path.join(st.session_state.current_path, item)
-        col1, col2 = st.columns([5, 1])
         
-        with col1:
+        if os.path.isdir(item_path):
+            if col1.button(f"📁 {item}"):
+                st.session_state.current_path = item_path
+        else:
+            if col1.button(f"📄 {item}"):
+                file_info = get_file_info(item_path)
+                st.write(f"Thông tin file: {file_info}")
+                display_file(item_path)
+        
+        if col2.button("Thông tin", key=f"info_{item}"):
+            st.write(get_file_info(item_path))
+        
+        if col3.button("Xóa", key=f"delete_{item}"):
             if os.path.isdir(item_path):
-                if st.button(f"📁 {item}", key=f"dir_{item}"):
-                    st.session_state.current_path = item_path
-                    st.experimental_rerun()
+                shutil.rmtree(item_path)
             else:
-                if st.button(f"📄 {item}", key=f"file_{item}"):
-                    display_file_content(item_path)
-        
-        with col2:
-            option = st.selectbox("", ["...", "Đổi tên", "Xóa", "Tải xuống"], key=f"option_{item}")
-            if option == "Đổi tên":
-                new_name = st.text_input(f"Đổi tên {item}", value=item, key=f"rename_{item}")
-                if st.button("Xác nhận", key=f"confirm_rename_{item}"):
-                    rename_item(item_path, new_name)
-                    st.experimental_rerun()
-            elif option == "Xóa":
-                if st.button("Xác nhận xóa", key=f"confirm_delete_{item}"):
-                    delete_item(item_path)
-                    st.experimental_rerun()
-            elif option == "Tải xuống" and os.path.isfile(item_path):
-                with open(item_path, "rb") as file:
-                    btn = st.download_button(
-                        label="Xác nhận tải xuống",
-                        data=file,
-                        file_name=item,
-                        mime="application/octet-stream",
-                        key=f"download_{item}"
-                    )
+                os.remove(item_path)
 
 if __name__ == "__main__":
     main()
