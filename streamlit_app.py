@@ -28,9 +28,9 @@ def display_file(file_path):
     elif file_type in ['.png', '.jpg', '.jpeg', '.gif']:
         st.image(Image.open(file_path))
     elif file_type in ['.mp3', '.wav']:
-        st.audio(file_path)
+        st.audio(open(file_path, 'rb').read())
     elif file_type in ['.mp4', '.avi', '.mov']:
-        st.video(file_path)
+        st.video(open(file_path, 'rb').read())
     elif file_type == '.pdf':
         with open(file_path, "rb") as f:
             base64_pdf = base64.b64encode(f.read()).decode('utf-8')
@@ -58,6 +58,18 @@ def main():
             st.session_state.navigation_history.append(new_path)
         else:
             st.sidebar.error("Đường dẫn không hợp lệ!")
+
+    # Upload file
+    with st.sidebar.expander("Upload file"):
+        uploaded_file = st.file_uploader("Chọn file để upload", type=None)
+        if uploaded_file is not None:
+            file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
+            try:
+                with open(file_path, "wb") as f:
+                    f.write(uploaded_file.getbuffer())
+                st.success(f"Đã upload file {uploaded_file.name} thành công!")
+            except Exception as e:
+                st.error(f"Lỗi khi upload file: {str(e)}")
 
     # Tạo thư mục/tệp mới
     with st.sidebar.expander("Tạo mới"):
