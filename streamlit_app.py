@@ -44,6 +44,9 @@ def main():
 
     if 'current_path' not in st.session_state:
         st.session_state.current_path = os.getcwd()
+    
+    if 'navigation_history' not in st.session_state:
+        st.session_state.navigation_history = []
 
     st.sidebar.title("Chức năng")
 
@@ -52,6 +55,7 @@ def main():
     if new_path != st.session_state.current_path:
         if os.path.exists(new_path) and os.path.isdir(new_path):
             st.session_state.current_path = new_path
+            st.session_state.navigation_history.append(new_path)
         else:
             st.sidebar.error("Đường dẫn không hợp lệ!")
 
@@ -90,19 +94,26 @@ def main():
     
     # Thêm nút để điều hướng đến thư mục cha
     if st.button("📁 .."):
-        st.session_state.current_path = os.path.dirname(st.session_state.current_path)
+        parent_dir = os.path.dirname(st.session_state.current_path)
+        st.session_state.navigation_history.append(parent_dir)
+        st.experimental_rerun()
     
     for item in os.listdir(st.session_state.current_path):
         item_path = os.path.join(st.session_state.current_path, item)
         
         if os.path.isdir(item_path):
             if st.button(f"📁 {item}", key=f"dir_{item}"):
-                st.session_state.current_path = item_path
+                st.session_state.navigation_history.append(item_path)
+                st.experimental_rerun()
         else:
             if st.button(f"📄 {item}", key=f"file_{item}"):
                 file_info = get_file_info(item_path)
                 st.write(f"Thông tin file: {file_info}")
                 display_file(item_path)
+
+    # Xử lý điều hướng
+    if st.session_state.navigation_history:
+        st.session_state.current_path = st.session_state.navigation_history.pop()
 
 if __name__ == "__main__":
     main()
