@@ -45,14 +45,24 @@ def main():
     if 'current_path' not in st.session_state:
         st.session_state.current_path = os.path.expanduser("~")
     
-    if 'upload_success' not in st.session_state:
-        st.session_state.upload_success = False
+    if 'uploaded_file' not in st.session_state:
+        st.session_state.uploaded_file = None
 
     if st.button("⬆️ Lên thư mục cha"):
         st.session_state.current_path = os.path.dirname(st.session_state.current_path)
 
     st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
 
+    # File uploader
+    uploaded_file = st.file_uploader("Chọn file để upload", type=None)
+    if uploaded_file is not None and uploaded_file != st.session_state.uploaded_file:
+        file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.success(f"File {uploaded_file.name} đã được upload thành công!")
+        st.session_state.uploaded_file = uploaded_file
+
+    # Display files and directories
     items = os.listdir(st.session_state.current_path)
     for item in items:
         item_path = os.path.join(st.session_state.current_path, item)
@@ -62,6 +72,7 @@ def main():
             if os.path.isdir(item_path):
                 if st.button(f"📁 {item}", key=f"dir_{item}"):
                     st.session_state.current_path = item_path
+                    st.session_state.uploaded_file = None  # Reset uploaded file when changing directory
                     st.experimental_rerun()
             else:
                 if st.button(f"📄 {item}", key=f"file_{item}"):
@@ -87,18 +98,6 @@ def main():
                         mime="application/octet-stream",
                         key=f"download_{item}"
                     )
-
-    uploaded_file = st.file_uploader("Chọn file để upload", type=None)
-    if uploaded_file is not None:
-        file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        st.session_state.upload_success = True
-    
-    if st.session_state.upload_success:
-        st.success(f"File {uploaded_file.name} đã được upload thành công!")
-        st.session_state.upload_success = False
-        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
