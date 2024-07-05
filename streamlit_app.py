@@ -39,14 +39,23 @@ def display_file_content(file_path):
     else:
         st.write("Không thể hiển thị nội dung của file này.")
 
+def handle_upload():
+    uploaded_file = st.session_state.uploaded_file
+    if uploaded_file is not None:
+        file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
+        with open(file_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+        st.session_state.upload_message = f"File {uploaded_file.name} đã được upload thành công!"
+        st.session_state.uploaded_file = None
+
 def main():
     st.title("File Explorer")
 
     if 'current_path' not in st.session_state:
         st.session_state.current_path = os.path.expanduser("~")
     
-    if 'uploaded_file' not in st.session_state:
-        st.session_state.uploaded_file = None
+    if 'upload_message' not in st.session_state:
+        st.session_state.upload_message = ""
 
     if st.button("⬆️ Lên thư mục cha"):
         st.session_state.current_path = os.path.dirname(st.session_state.current_path)
@@ -54,13 +63,12 @@ def main():
     st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
 
     # File uploader
-    uploaded_file = st.file_uploader("Chọn file để upload", type=None)
-    if uploaded_file is not None and uploaded_file != st.session_state.uploaded_file:
-        file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
-        with open(file_path, "wb") as f:
-            f.write(uploaded_file.getbuffer())
-        st.success(f"File {uploaded_file.name} đã được upload thành công!")
-        st.session_state.uploaded_file = uploaded_file
+    st.file_uploader("Chọn file để upload", type=None, key="uploaded_file", on_change=handle_upload)
+
+    # Display upload message
+    if st.session_state.upload_message:
+        st.success(st.session_state.upload_message)
+        st.session_state.upload_message = ""
 
     # Display files and directories
     items = os.listdir(st.session_state.current_path)
@@ -72,7 +80,6 @@ def main():
             if os.path.isdir(item_path):
                 if st.button(f"📁 {item}", key=f"dir_{item}"):
                     st.session_state.current_path = item_path
-                    st.session_state.uploaded_file = None  # Reset uploaded file when changing directory
                     st.experimental_rerun()
             else:
                 if st.button(f"📄 {item}", key=f"file_{item}"):
