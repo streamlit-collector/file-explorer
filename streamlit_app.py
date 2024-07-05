@@ -26,7 +26,7 @@ def display_file_content(file_path):
     
     if file_type == 'text':
         with open(file_path, 'r') as file:
-            st.text_area("File Content", file.read(), height=300)
+            st.text_area("Nội dung file", file.read(), height=300)
     elif file_type == 'image':
         st.image(Image.open(file_path))
     elif file_type == 'video':
@@ -43,61 +43,58 @@ def display_file_content(file_path):
 def main():
     st.title("File Explorer")
 
-    # Khởi tạo session state
     if 'current_path' not in st.session_state:
         st.session_state.current_path = os.path.expanduser("~")
 
-    # Nút để quay lại thư mục cha
     if st.button("⬆️ Lên thư mục cha"):
         st.session_state.current_path = os.path.dirname(st.session_state.current_path)
 
-    # Hiển thị đường dẫn hiện tại
     st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
 
-    # Liệt kê các file và thư mục
     items = os.listdir(st.session_state.current_path)
     for item in items:
         item_path = os.path.join(st.session_state.current_path, item)
-        col1, col2, col3, col4 = st.columns([3, 1, 1, 1])
+        col1, col2 = st.columns([5, 1])
         
         with col1:
             if os.path.isdir(item_path):
-                if st.button(f"📁 {item}"):
+                if st.button(f"📁 {item}", key=f"dir_{item}"):
                     st.session_state.current_path = item_path
                     st.experimental_rerun()
             else:
-                if st.button(f"📄 {item}"):
-                    display_file_content(item_path)
+                st.write(f"📄 {item}")
         
         with col2:
-            new_name = st.text_input(f"Đổi tên {item}", value=item, key=f"rename_{item}")
-            if new_name != item:
-                rename_item(item_path, new_name)
-                st.experimental_rerun()
-        
-        with col3:
-            if st.button(f"Xóa {item}", key=f"delete_{item}"):
-                delete_item(item_path)
-                st.experimental_rerun()
-        
-        with col4:
-            if os.path.isfile(item_path):
+            option = st.selectbox("", ["...", "Mở", "Đổi tên", "Xóa", "Tải xuống"], key=f"option_{item}")
+            if option == "Mở":
+                if os.path.isfile(item_path):
+                    display_file_content(item_path)
+            elif option == "Đổi tên":
+                new_name = st.text_input(f"Đổi tên {item}", value=item, key=f"rename_{item}")
+                if st.button("Xác nhận", key=f"confirm_rename_{item}"):
+                    rename_item(item_path, new_name)
+                    st.experimental_rerun()
+            elif option == "Xóa":
+                if st.button("Xác nhận xóa", key=f"confirm_delete_{item}"):
+                    delete_item(item_path)
+                    st.experimental_rerun()
+            elif option == "Tải xuống" and os.path.isfile(item_path):
                 with open(item_path, "rb") as file:
                     btn = st.download_button(
-                        label="Tải xuống",
+                        label="Xác nhận tải xuống",
                         data=file,
                         file_name=item,
                         mime="application/octet-stream",
                         key=f"download_{item}"
                     )
 
-    # Upload file
     uploaded_file = st.file_uploader("Chọn file để upload", type=None)
     if uploaded_file is not None:
         file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         st.success(f"File {uploaded_file.name} đã được upload thành công!")
+        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
