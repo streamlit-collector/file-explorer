@@ -3,7 +3,6 @@ import os
 import shutil
 from PIL import Image
 import mimetypes
-import base64
 
 def get_file_type(file_path):
     mime_type, _ = mimetypes.guess_type(file_path)
@@ -62,14 +61,12 @@ def main():
                     st.session_state.current_path = item_path
                     st.experimental_rerun()
             else:
-                st.write(f"📄 {item}")
+                if st.button(f"📄 {item}", key=f"file_{item}"):
+                    display_file_content(item_path)
         
         with col2:
-            option = st.selectbox("", ["...", "Mở", "Đổi tên", "Xóa", "Tải xuống"], key=f"option_{item}")
-            if option == "Mở":
-                if os.path.isfile(item_path):
-                    display_file_content(item_path)
-            elif option == "Đổi tên":
+            option = st.selectbox("", ["...", "Đổi tên", "Xóa", "Tải xuống"], key=f"option_{item}")
+            if option == "Đổi tên":
                 new_name = st.text_input(f"Đổi tên {item}", value=item, key=f"rename_{item}")
                 if st.button("Xác nhận", key=f"confirm_rename_{item}"):
                     rename_item(item_path, new_name)
