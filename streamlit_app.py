@@ -13,7 +13,6 @@ def get_file_type(file_path):
 def rename_item(old_path, new_name):
     new_path = os.path.join(os.path.dirname(old_path), new_name)
     os.rename(old_path, new_path)
-    return new_path
 
 def delete_item(path):
     if os.path.isfile(path):
@@ -63,34 +62,36 @@ def main():
 
     # Sidebar
     with st.sidebar:
-        st.header("Chức năng")
+        st.header("Điều khiển")
         
+        # Nút lên thư mục cha
+        if st.button("⬆️ Lên thư mục cha"):
+            st.session_state.current_path = os.path.dirname(st.session_state.current_path)
+            st.session_state.selected_item = None
+            st.experimental_rerun()
+
         # File uploader
         st.file_uploader("Chọn file để upload", type=None, key="uploaded_file", on_change=handle_upload)
 
-        # Display upload message
-        if st.session_state.upload_message:
-            st.success(st.session_state.upload_message)
-            st.session_state.upload_message = ""
-
+        # Hiển thị thông tin và chức năng cho item được chọn
         if st.session_state.selected_item:
+            st.subheader(f"Đang chọn: {st.session_state.selected_item}")
             item_path = os.path.join(st.session_state.current_path, st.session_state.selected_item)
-            st.write(f"Đang chọn: {st.session_state.selected_item}")
-
-            # Rename function
+            
+            # Chức năng đổi tên
             new_name = st.text_input("Đổi tên", value=st.session_state.selected_item)
             if st.button("Xác nhận đổi tên"):
-                new_path = rename_item(item_path, new_name)
-                st.session_state.selected_item = os.path.basename(new_path)
+                rename_item(item_path, new_name)
+                st.session_state.selected_item = new_name
                 st.experimental_rerun()
-
-            # Delete function
+            
+            # Chức năng xóa
             if st.button("Xóa"):
                 delete_item(item_path)
                 st.session_state.selected_item = None
                 st.experimental_rerun()
-
-            # Download function (only for files)
+            
+            # Chức năng tải xuống (chỉ cho file)
             if os.path.isfile(item_path):
                 with open(item_path, "rb") as file:
                     st.download_button(
@@ -101,11 +102,12 @@ def main():
                     )
 
     # Main content
-    if st.button("⬆️ Lên thư mục cha"):
-        st.session_state.current_path = os.path.dirname(st.session_state.current_path)
-        st.session_state.selected_item = None
-
     st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
+
+    # Display upload message
+    if st.session_state.upload_message:
+        st.success(st.session_state.upload_message)
+        st.session_state.upload_message = ""
 
     # Display files and directories
     items = os.listdir(st.session_state.current_path)
