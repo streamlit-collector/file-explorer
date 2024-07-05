@@ -98,7 +98,6 @@ def main():
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
         st.success(f"File {uploaded_file.name} đã được upload thành công!")
-        st.experimental_rerun()
 
 if __name__ == "__main__":
     main()
