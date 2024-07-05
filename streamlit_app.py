@@ -56,55 +56,49 @@ def main():
             st.sidebar.error("Đường dẫn không hợp lệ!")
 
     # Tạo thư mục/tệp mới
-    new_item = st.sidebar.text_input("Tên thư mục/tệp mới:")
-    create_type = st.sidebar.radio("Loại:", ("Thư mục", "Tệp"))
-    if st.sidebar.button("Tạo"):
-        new_path = os.path.join(st.session_state.current_path, new_item)
-        if create_type == "Thư mục":
-            os.makedirs(new_path, exist_ok=True)
-        else:
-            open(new_path, 'a').close()
+    with st.sidebar.expander("Tạo mới"):
+        new_item = st.text_input("Tên thư mục/tệp mới:")
+        create_type = st.radio("Loại:", ("Thư mục", "Tệp"))
+        if st.button("Tạo"):
+            new_path = os.path.join(st.session_state.current_path, new_item)
+            if create_type == "Thư mục":
+                os.makedirs(new_path, exist_ok=True)
+            else:
+                open(new_path, 'a').close()
 
     # Xóa thư mục/tệp
-    delete_item = st.sidebar.selectbox("Chọn mục để xóa:", os.listdir(st.session_state.current_path))
-    if st.sidebar.button("Xóa"):
-        delete_path = os.path.join(st.session_state.current_path, delete_item)
-        if os.path.isdir(delete_path):
-            shutil.rmtree(delete_path)
-        else:
-            os.remove(delete_path)
+    with st.sidebar.expander("Xóa"):
+        delete_item = st.selectbox("Chọn mục để xóa:", os.listdir(st.session_state.current_path))
+        if st.button("Xóa"):
+            delete_path = os.path.join(st.session_state.current_path, delete_item)
+            if os.path.isdir(delete_path):
+                shutil.rmtree(delete_path)
+            else:
+                os.remove(delete_path)
 
     # Di chuyển tệp/thư mục
-    move_item = st.sidebar.selectbox("Chọn mục để di chuyển:", os.listdir(st.session_state.current_path))
-    move_to = st.sidebar.text_input("Di chuyển đến:")
-    if st.sidebar.button("Di chuyển"):
-        source = os.path.join(st.session_state.current_path, move_item)
-        destination = os.path.join(move_to, move_item)
-        shutil.move(source, destination)
+    with st.sidebar.expander("Di chuyển"):
+        move_item = st.selectbox("Chọn mục để di chuyển:", os.listdir(st.session_state.current_path))
+        move_to = st.text_input("Di chuyển đến:")
+        if st.button("Di chuyển"):
+            source = os.path.join(st.session_state.current_path, move_item)
+            destination = os.path.join(move_to, move_item)
+            shutil.move(source, destination)
 
     # Hiển thị nội dung thư mục
     st.write(f"Nội dung của: {st.session_state.current_path}")
+    
     for item in os.listdir(st.session_state.current_path):
-        col1, col2, col3 = st.columns([3, 1, 1])
         item_path = os.path.join(st.session_state.current_path, item)
         
         if os.path.isdir(item_path):
-            if col1.button(f"📁 {item}"):
+            if st.button(f"📁 {item}", key=f"dir_{item}"):
                 st.session_state.current_path = item_path
         else:
-            if col1.button(f"📄 {item}"):
+            if st.button(f"📄 {item}", key=f"file_{item}"):
                 file_info = get_file_info(item_path)
                 st.write(f"Thông tin file: {file_info}")
                 display_file(item_path)
-        
-        if col2.button("Thông tin", key=f"info_{item}"):
-            st.write(get_file_info(item_path))
-        
-        if col3.button("Xóa", key=f"delete_{item}"):
-            if os.path.isdir(item_path):
-                shutil.rmtree(item_path)
-            else:
-                os.remove(item_path)
 
 if __name__ == "__main__":
     main()
