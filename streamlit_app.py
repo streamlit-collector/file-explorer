@@ -20,10 +20,6 @@ def delete_item(path):
     elif os.path.isdir(path):
         shutil.rmtree(path)
 
-def create_directory(path, name):
-    new_dir_path = os.path.join(path, name)
-    os.makedirs(new_dir_path, exist_ok=True)
-
 def display_file_content(file_path):
     file_type = get_file_type(file_path)
     
@@ -53,7 +49,6 @@ def handle_upload():
         st.session_state.uploaded_file = None
 
 def main():
-    st.set_page_config(layout="wide")
     st.title("File Explorer")
 
     if 'current_path' not in st.session_state:
@@ -61,79 +56,54 @@ def main():
     
     if 'upload_message' not in st.session_state:
         st.session_state.upload_message = ""
-    
-    if 'selected_item' not in st.session_state:
-        st.session_state.selected_item = None
 
-    col1, col2 = st.columns([2, 3])
+    if st.button("⬆️ Lên thư mục cha"):
+        st.session_state.current_path = os.path.dirname(st.session_state.current_path)
 
-    with col1:
-        st.subheader("Danh sách tệp và thư mục")
-        if st.button("⬆️ Lên thư mục cha"):
-            st.session_state.current_path = os.path.dirname(st.session_state.current_path)
-            st.session_state.selected_item = None
+    st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
 
-        st.write(f"Đường dẫn hiện tại: {st.session_state.current_path}")
+    # File uploader
+    st.file_uploader("Chọn file để upload", type=None, key="uploaded_file", on_change=handle_upload)
 
-        items = os.listdir(st.session_state.current_path)
-        for item in items:
-            item_path = os.path.join(st.session_state.current_path, item)
+    # Display upload message
+    if st.session_state.upload_message:
+        st.success(st.session_state.upload_message)
+        st.session_state.upload_message = ""
+
+    # Display files and directories
+    items = os.listdir(st.session_state.current_path)
+    for item in items:
+        item_path = os.path.join(st.session_state.current_path, item)
+        col1, col2 = st.columns([5, 1])
+        
+        with col1:
             if os.path.isdir(item_path):
                 if st.button(f"📁 {item}", key=f"dir_{item}"):
                     st.session_state.current_path = item_path
-                    st.session_state.selected_item = None
                     st.experimental_rerun()
             else:
                 if st.button(f"📄 {item}", key=f"file_{item}"):
-                    st.session_state.selected_item = item_path
-
-    with col2:
-        if st.session_state.selected_item:
-            st.subheader(f"Đang xem: {os.path.basename(st.session_state.selected_item)}")
-            display_file_content(st.session_state.selected_item)
-
-    with st.sidebar:
-        st.subheader("Chức năng")
+                    display_file_content(item_path)
         
-        st.file_uploader("Chọn file để upload", type=None, key="uploaded_file", on_change=handle_upload)
-
-        if st.session_state.upload_message:
-            st.success(st.session_state.upload_message)
-            st.session_state.upload_message = ""
-
-        new_dir_name = st.text_input("Tên thư mục mới")
-        if st.button("Tạo thư mục mới"):
-            if new_dir_name:
-                create_directory(st.session_state.current_path, new_dir_name)
-                st.success(f"Đã tạo thư mục {new_dir_name}")
-                st.experimental_rerun()
-            else:
-                st.warning("Vui lòng nhập tên thư mục")
-
-        if st.session_state.selected_item:
-            selected_name = os.path.basename(st.session_state.selected_item)
-            st.subheader(f"Thao tác với: {selected_name}")
-            
-            new_name = st.text_input("Đổi tên", value=selected_name)
-            if st.button("Xác nhận đổi tên"):
-                rename_item(st.session_state.selected_item, new_name)
-                st.session_state.selected_item = os.path.join(os.path.dirname(st.session_state.selected_item), new_name)
-                st.success(f"Đã đổi tên thành {new_name}")
-                st.experimental_rerun()
-
-            if st.button("Xóa"):
-                delete_item(st.session_state.selected_item)
-                st.session_state.selected_item = None
-                st.success(f"Đã xóa {selected_name}")
-                st.experimental_rerun()
-
-            if os.path.isfile(st.session_state.selected_item):
-                with open(st.session_state.selected_item, "rb") as file:
-                    st.download_button(
-                        label="Tải xuống",
+        with col2:
+            option = st.selectbox("", ["...", "Đổi tên", "Xóa", "Tải xuống"], key=f"option_{item}")
+            if option == "Đổi tên":
+                new_name = st.text_input(f"Đổi tên {item}", value=item, key=f"rename_{item}")
+                if st.button("Xác nhận", key=f"confirm_rename_{item}"):
+                    rename_item(item_path, new_name)
+                    st.experimental_rerun()
+            elif option == "Xóa":
+                if st.button("Xác nhận xóa", key=f"confirm_delete_{item}"):
+                    delete_item(item_path)
+                    st.experimental_rerun()
+            elif option == "Tải xuống" and os.path.isfile(item_path):
+                with open(item_path, "rb") as file:
+                    btn = st.download_button(
+                        label="Xác nhận tải xuống",
                         data=file,
-                        file_name=selected_name,
-                        mime="application/octet-stream"
+                        file_name=item,
+                        mime="application/octet-stream",
+                        key=f"download_{item}"
                     )
 
 if __name__ == "__main__":
