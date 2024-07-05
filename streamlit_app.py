@@ -44,6 +44,9 @@ def main():
 
     if 'current_path' not in st.session_state:
         st.session_state.current_path = os.path.expanduser("~")
+    
+    if 'upload_success' not in st.session_state:
+        st.session_state.upload_success = False
 
     if st.button("⬆️ Lên thư mục cha"):
         st.session_state.current_path = os.path.dirname(st.session_state.current_path)
@@ -90,7 +93,11 @@ def main():
         file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
         with open(file_path, "wb") as f:
             f.write(uploaded_file.getbuffer())
+        st.session_state.upload_success = True
+    
+    if st.session_state.upload_success:
         st.success(f"File {uploaded_file.name} đã được upload thành công!")
+        st.session_state.upload_success = False
         st.experimental_rerun()
 
 if __name__ == "__main__":
