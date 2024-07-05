@@ -120,7 +120,7 @@ def main():
         else:
             if st.button(f"📄 {item}", key=f"file_{item}"):
                 file_info = get_file_info(item_path)
-                st.write(f"Thông tin file: {file_info}")
+                st.code(f"{file_info}", language="json")
                 display_file(item_path)
 
     # Xử lý điều hướng
