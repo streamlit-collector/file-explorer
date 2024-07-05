@@ -88,6 +88,10 @@ def main():
     # Hiển thị nội dung thư mục
     st.write(f"Nội dung của: {st.session_state.current_path}")
     
+    # Thêm nút để điều hướng đến thư mục cha
+    if st.button("📁 .."):
+        st.session_state.current_path = os.path.dirname(st.session_state.current_path)
+    
     for item in os.listdir(st.session_state.current_path):
         item_path = os.path.join(st.session_state.current_path, item)
         
