@@ -145,17 +145,21 @@ def main():
         with tab2:
             st.subheader("Shell")
 
-            # Hiển thị lịch sử shell
-            st.markdown("### Lịch sử Shell")
-            history_container = st.container()
-            with history_container:
+            # Hiển thị lịch sử shell trong một khung có kích thước cố định
+            history_display = st.empty()
+            with history_display.container(height=350):
+                st.markdown("### Lịch sử Shell")
+                history_area = st.empty()
+                
+                # Hiển thị lịch sử shell
+                history_text = ""
                 for cmd, out in st.session_state.shell_history[-10:]:  # Hiển thị 10 lệnh gần nhất
-                    st.markdown(f"**$ {cmd}**")
-                    st.code(out)
+                    history_text += f"$ {cmd}\n{out}\n\n"
+                history_area.code(history_text)
 
             # Nhập lệnh shell
-            shell_command = st.text_input("Nhập lệnh shell:")
-            if st.button("Thực thi"):
+            shell_command = st.chat_input("Nhập lệnh shell:", key="shell_input")
+            if shell_command:
                 output = execute_shell_command(shell_command)
                 st.session_state.shell_history.append((shell_command, output))
                 
@@ -164,11 +168,14 @@ def main():
                     f.write(f"Command: {shell_command}\n")
                     f.write(f"Output: {output}\n\n")
                 
+                # Xóa nội dung của ô nhập lệnh
+                st.session_state.shell_input = ""
+                
                 # Cập nhật hiển thị lịch sử
-                with history_container:
-                    for cmd, out in st.session_state.shell_history[-10:]:
-                        st.markdown(f"**$ {cmd}**")
-                        st.code(out)
+                history_text = ""
+                for cmd, out in st.session_state.shell_history[-10:]:
+                    history_text += f"$ {cmd}\n{out}\n\n"
+                history_area.code(history_text)
 
     # Hiển thị nội dung file hoặc màn hình chính
     if st.session_state.viewing_file:
