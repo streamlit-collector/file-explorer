@@ -147,7 +147,7 @@ def main():
 
             # Hiển thị lịch sử shell trong một khung có kích thước cố định
             history_display = st.empty()
-            with history_display.container():
+            with history_display.container(height=350):
                 st.markdown("### Lịch sử Shell")
                 history_area = st.empty()
                 
@@ -158,7 +158,7 @@ def main():
                 history_area.code(history_text)
 
             # Nhập lệnh shell
-            shell_command = st.text_input("Nhập lệnh shell:", key="shell_input")
+            shell_command = st.chat_input("Nhập lệnh shell:", key="shell_input")
             if shell_command:
                 output = execute_shell_command(shell_command)
                 st.session_state.shell_history.append((shell_command, output))
