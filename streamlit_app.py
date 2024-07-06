@@ -4,6 +4,8 @@ import shutil
 from PIL import Image
 import pandas as pd
 import base64
+import subprocess
+import tempfile
 
 def get_file_size(file_path):
     return os.path.getsize(file_path)
@@ -54,6 +56,13 @@ def show_file_list(container):
                 st.session_state.viewing_file = item_path
                 st.experimental_rerun()
 
+def execute_shell_command(command):
+    try:
+        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True)
+        return result.stdout
+    except subprocess.CalledProcessError as e:
+        return f"Error: {e.stderr}"
+
 def main():
     if 'current_path' not in st.session_state:
         st.session_state.current_path = os.getcwd()
@@ -61,6 +70,8 @@ def main():
         st.session_state.viewing_file = None
     if 'navigation_history' not in st.session_state:
         st.session_state.navigation_history = []
+    if 'shell_history' not in st.session_state:
+        st.session_state.shell_history = []
 
     # Hiển thị tiêu đề động
     if st.session_state.viewing_file:
@@ -72,61 +83,85 @@ def main():
     with st.sidebar:
         st.title("Chức năng")
         
-        # Mở thư mục
-        new_path = st.text_input("Đường dẫn thư mục:", st.session_state.current_path)
-        if new_path != st.session_state.current_path:
-            if os.path.exists(new_path) and os.path.isdir(new_path):
-                st.session_state.current_path = new_path
-                st.session_state.navigation_history.append(new_path)
-                st.session_state.viewing_file = None
-                st.experimental_rerun()
-            else:
-                st.error("Đường dẫn không hợp lệ!")
-
-        # Upload file
-        with st.expander("Upload file"):
-            uploaded_file = st.file_uploader("Chọn file để upload", type=None)
-            if uploaded_file is not None:
-                file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
-                try:
-                    with open(file_path, "wb") as f:
-                        f.write(uploaded_file.getbuffer())
-                    st.success(f"Đã upload file {uploaded_file.name} thành công!")
-                except Exception as e:
-                    st.error(f"Lỗi khi upload file: {str(e)}")
-
-        # Tạo thư mục/tệp mới
-        with st.expander("Tạo mới"):
-            new_item = st.text_input("Tên thư mục/tệp mới:")
-            create_type = st.radio("Loại:", ("Thư mục", "Tệp"))
-            if st.button("Tạo"):
-                new_path = os.path.join(st.session_state.current_path, new_item)
-                if create_type == "Thư mục":
-                    os.makedirs(new_path, exist_ok=True)
+        # Tạo tabs trong sidebar
+        tab1, tab2 = st.tabs(["File Manager", "Shell"])
+        
+        with tab1:
+            # Mở thư mục
+            new_path = st.text_input("Đường dẫn thư mục:", st.session_state.current_path)
+            if new_path != st.session_state.current_path:
+                if os.path.exists(new_path) and os.path.isdir(new_path):
+                    st.session_state.current_path = new_path
+                    st.session_state.navigation_history.append(new_path)
+                    st.session_state.viewing_file = None
+                    st.experimental_rerun()
                 else:
-                    open(new_path, 'a').close()
-                st.experimental_rerun()
+                    st.error("Đường dẫn không hợp lệ!")
 
-        # Xóa thư mục/tệp
-        with st.expander("Xóa"):
-            delete_item = st.selectbox("Chọn mục để xóa:", os.listdir(st.session_state.current_path))
-            if st.button("Xóa"):
-                delete_path = os.path.join(st.session_state.current_path, delete_item)
-                if os.path.isdir(delete_path):
-                    shutil.rmtree(delete_path)
-                else:
-                    os.remove(delete_path)
-                st.experimental_rerun()
+            # Upload file
+            with st.expander("Upload file"):
+                uploaded_file = st.file_uploader("Chọn file để upload", type=None)
+                if uploaded_file is not None:
+                    file_path = os.path.join(st.session_state.current_path, uploaded_file.name)
+                    try:
+                        with open(file_path, "wb") as f:
+                            f.write(uploaded_file.getbuffer())
+                        st.success(f"Đã upload file {uploaded_file.name} thành công!")
+                    except Exception as e:
+                        st.error(f"Lỗi khi upload file: {str(e)}")
 
-        # Di chuyển tệp/thư mục
-        with st.expander("Di chuyển"):
-            move_item = st.selectbox("Chọn mục để di chuyển:", os.listdir(st.session_state.current_path))
-            move_to = st.text_input("Di chuyển đến:")
-            if st.button("Di chuyển"):
-                source = os.path.join(st.session_state.current_path, move_item)
-                destination = os.path.join(move_to, move_item)
-                shutil.move(source, destination)
+            # Tạo thư mục/tệp mới
+            with st.expander("Tạo mới"):
+                new_item = st.text_input("Tên thư mục/tệp mới:")
+                create_type = st.radio("Loại:", ("Thư mục", "Tệp"))
+                if st.button("Tạo"):
+                    new_path = os.path.join(st.session_state.current_path, new_item)
+                    if create_type == "Thư mục":
+                        os.makedirs(new_path, exist_ok=True)
+                    else:
+                        open(new_path, 'a').close()
+                    st.experimental_rerun()
+
+            # Xóa thư mục/tệp
+            with st.expander("Xóa"):
+                delete_item = st.selectbox("Chọn mục để xóa:", os.listdir(st.session_state.current_path))
+                if st.button("Xóa"):
+                    delete_path = os.path.join(st.session_state.current_path, delete_item)
+                    if os.path.isdir(delete_path):
+                        shutil.rmtree(delete_path)
+                    else:
+                        os.remove(delete_path)
+                    st.experimental_rerun()
+
+            # Di chuyển tệp/thư mục
+            with st.expander("Di chuyển"):
+                move_item = st.selectbox("Chọn mục để di chuyển:", os.listdir(st.session_state.current_path))
+                move_to = st.text_input("Di chuyển đến:")
+                if st.button("Di chuyển"):
+                    source = os.path.join(st.session_state.current_path, move_item)
+                    destination = os.path.join(move_to, move_item)
+                    shutil.move(source, destination)
+                    st.experimental_rerun()
+
+        with tab2:
+            st.subheader("Shell")
+            shell_command = st.text_input("Nhập lệnh shell:")
+            if st.button("Thực thi"):
+                output = execute_shell_command(shell_command)
+                st.session_state.shell_history.append((shell_command, output))
+                
+                # Lưu lịch sử vào file
+                with open("shell_history.txt", "a") as f:
+                    f.write(f"Command: {shell_command}\n")
+                    f.write(f"Output: {output}\n\n")
+                
                 st.experimental_rerun()
+            
+            # Hiển thị lịch sử shell
+            st.subheader("Lịch sử Shell")
+            for cmd, out in st.session_state.shell_history:
+                st.text(f"$ {cmd}")
+                st.code(out)
 
     # Hiển thị nội dung file hoặc màn hình chính
     if st.session_state.viewing_file:
