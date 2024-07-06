@@ -145,17 +145,37 @@ def main():
         with tab2:
             st.subheader("Shell")
 
-            # Hiển thị lịch sử shell trong một khung có kích thước cố định
-            history_display = st.empty()
-            with history_display.container(height=350):
-                st.markdown("### Lịch sử Shell")
-                history_area = st.empty()
-                
-                # Hiển thị lịch sử shell
-                history_text = ""
-                for cmd, out in st.session_state.shell_history[-10:]:  # Hiển thị 10 lệnh gần nhất
-                    history_text += f"$ {cmd}\n{out}\n\n"
-                history_area.code(history_text)
+            # Sử dụng HTML và JavaScript để tạo khung cuộn tự động
+            st.markdown("""
+            <style>
+                #shell-history {
+                    height: 350px;
+                    overflow-y: scroll;
+                    background-color: #f0f0f0;
+                    padding: 10px;
+                    border-radius: 5px;
+                }
+            </style>
+            <div id="shell-history"></div>
+            <script>
+                function updateShellHistory(history) {
+                    var historyDiv = document.getElementById('shell-history');
+                    historyDiv.innerHTML = history;
+                    historyDiv.scrollTop = historyDiv.scrollHeight;
+                }
+            </script>
+            """, unsafe_allow_html=True)
+
+            # Hiển thị lịch sử shell
+            history_text = ""
+            for cmd, out in st.session_state.shell_history[-10:]:  # Hiển thị 10 lệnh gần nhất
+                history_text += f"<p><strong>$ {cmd}</strong><br>{out}</p>"
+            
+            st.markdown(f"""
+            <script>
+                updateShellHistory(`{history_text}`);
+            </script>
+            """, unsafe_allow_html=True)
 
             # Nhập lệnh shell
             shell_command = st.chat_input("Nhập lệnh shell:", key="shell_input")
@@ -174,8 +194,13 @@ def main():
                 # Cập nhật hiển thị lịch sử
                 history_text = ""
                 for cmd, out in st.session_state.shell_history[-10:]:
-                    history_text += f"$ {cmd}\n{out}\n\n"
-                history_area.code(history_text)
+                    history_text += f"<p><strong>$ {cmd}</strong><br>{out}</p>"
+                
+                st.markdown(f"""
+                <script>
+                    updateShellHistory(`{history_text}`);
+                </script>
+                """, unsafe_allow_html=True)
 
     # Hiển thị nội dung file hoặc màn hình chính
     if st.session_state.viewing_file:
